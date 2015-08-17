@@ -1,9 +1,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <random>
 
 #include <utils.h>
 #include <expansion_math.h>
+#include <test_apps.h>
+#include <iostream>
 
 #define N 100000000
 #define CPU_SPEED 2.2E+09
@@ -24,12 +27,12 @@ int main() {
   // unsigned long long t1, t2, t3, t4;
   double t1, t2, t3, t4;
 
-  srand(time(NULL));
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_real_distribution<double> dist(0, 1);
 
-  a = rand();
-  a /= RAND_MAX;
-  b = rand();
-  b /= RAND_MAX;
+  a = dist(mt);
+  b = dist(mt);
 
   fast_two_sum(a, b, x, y);
 
@@ -45,17 +48,13 @@ int main() {
   printf("\n=========== sum(a) ==============\n");
 
   for (i = 0; i < N; ++i) {
-    da = rand();
+    da = dist(mt);
     a = da;
-    a /= RAND_MAX;
-    da /= RAND_MAX;
     arr1[i] = a;
     darr1[i] = da;
 
-    da = rand();
+    da = dist(mt);
     a = da;
-    a /= RAND_MAX;
-    da /= RAND_MAX;
     arr2[i] = a;
     darr2[i] = da;
   }
@@ -80,10 +79,8 @@ int main() {
 
   printf("\n=========== a*b ===============\n");
 
-  a = rand();
-  a /= RAND_MAX;
-  b = rand();
-  b /= RAND_MAX;
+  a = dist(mt);
+  b = dist(mt);
 
   two_product(a, b, x, y);
 
@@ -103,7 +100,7 @@ int main() {
   t2 = rdtsc();
   dsum = dot(darr1, darr2, N);
   t3 = rdtsc();
-  exp_dot(arr1,arr2,N,e1,e2);
+  exp_dot(arr1, arr2, N, e1, e2);
   t4 = rdtsc();
 
 
@@ -120,6 +117,42 @@ int main() {
   free(arr2);
   free(darr1);
   free(darr2);
+
+
+  printf("\n=========== Runge-Kutta ============\n");
+
+  unsigned int n = 100000, r = 9;
+  double *qres, *qrhs, *q;
+  float *fqres, *fqrhs, *fq;
+
+  qres = new double[n * r];
+  qrhs = new double[n * r];
+  q = new double[n * r];
+
+  // Initialize arrays ...
+  for (int i = 0; i < n * r; ++i) {
+    qres[i] = dist(mt);
+    qrhs[i] = dist(mt);
+    q[i] = dist(mt);
+  }
+
+  t1 = rdtsc();
+  test_rk4<double, 9>(n, qres, qrhs, q);
+  t2 = rdtsc();
+  test_rk4<float, 9>(n, fqres, fqrhs, fq);
+  t3 = rdtsc();
+  test_rk4_exp<9>(n, fqres, fqrhs, fq);
+  t4 = rdtsc();
+
+  std::cout << "time for rk4_double: " << (t2 - t1) / CPU_SPEED << "s" << std::endl;
+  std::cout << "time for rk4_float:  " << (t3 - t2) / CPU_SPEED << "s" << std::endl;
+  std::cout << "time for rk4_exp:    " << (t4 - t3) / CPU_SPEED << "s" << std::endl;
+
+  delete[] q;
+  delete[] qrhs;
+  delete[] qres;
+
+  printf("\n============================\n");
 
   return 0;
 }
