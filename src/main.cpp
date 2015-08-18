@@ -111,13 +111,10 @@ int main() {
   printf("times: %g, %g, %g\n", (t2 - t1) / CPU_SPEED, (t3 - t2) / CPU_SPEED, (t4 - t3) / CPU_SPEED);
 
 
-  printf("\n============================\n");
-
   free(arr1);
   free(arr2);
   free(darr1);
   free(darr2);
-
 
   printf("\n=========== Runge-Kutta ============\n");
 
@@ -129,19 +126,23 @@ int main() {
   qrhs = new double[n * r];
   q = new double[n * r];
 
+  fqres = new float[n * r];
+  fqrhs = new float[n * r];
+  fq = new float[n * r];
+
   // Initialize arrays ...
   for (int i = 0; i < n * r; ++i) {
-    qres[i] = dist(mt);
-    qrhs[i] = dist(mt);
-    q[i] = dist(mt);
+    fqres[i] = qres[i] = dist(mt);
+    fqrhs[i] = qrhs[i] = dist(mt);
+    fq[i] = q[i] = dist(mt);
   }
 
   t1 = rdtsc();
-  test_rk4<double, 9>(n, qres, qrhs, q);
+  test_rk45<double, 1>(n, qres, qrhs, q);
   t2 = rdtsc();
-  test_rk4<float, 9>(n, fqres, fqrhs, fq);
+  test_rk45<float, 1>(n, fqres, fqrhs, fq);
   t3 = rdtsc();
-  test_rk4_exp<9>(n, fqres, fqrhs, fq);
+  test_rk45_exp<1>(n, fqres, fqrhs, fq);
   t4 = rdtsc();
 
   std::cout << "time for rk4_double: " << (t2 - t1) / CPU_SPEED << "s" << std::endl;
@@ -151,6 +152,9 @@ int main() {
   delete[] q;
   delete[] qrhs;
   delete[] qres;
+  delete[] fq;
+  delete[] fqrhs;
+  delete[] fqres;
 
   printf("\n============================\n");
 
