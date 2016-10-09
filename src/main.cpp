@@ -118,7 +118,7 @@ int main() {
 
   printf("\n=========== Runge-Kutta ============\n");
 
-  unsigned int n = 100000, r = 9;
+  unsigned int n = 10000, r = 9;
   double *qres, *qrhs, *q;
   float *fqres, *fqrhs, *fq;
 
@@ -148,6 +148,10 @@ int main() {
   std::cout << "time for rk4_double: " << (t2 - t1) / CPU_SPEED << "s" << std::endl;
   std::cout << "time for rk4_float:  " << (t3 - t2) / CPU_SPEED << "s" << std::endl;
   std::cout << "time for rk4_exp:    " << (t4 - t3) / CPU_SPEED << "s" << std::endl;
+
+  /* Compute norms */
+
+
 
   delete[] q;
   delete[] qrhs;

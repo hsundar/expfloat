@@ -47,6 +47,7 @@ grow_expansion (float& e1, float& e2, float b) {
     two_sum(q, e1, e1, e2);
 }
 
+
 inline void
 fast_expansion_sum (float& e1, float& e2, float f1, float f2) {
     float q,h;
@@ -87,6 +88,24 @@ two_product (float a, float b, float&x, float& y) {
     err1 = err2 - (a_hi * b_lo);
 
     y = (a_lo * b_lo) - err1;
+}
+
+// scale (e1,e2) by a
+inline void
+scale_expansion(float* e1, float* e2, float a) {
+  float q,h,T,t;
+
+  two_product(*e2, a, q, h);
+  two_product(*e1, a, T,t);
+
+  two_sum(q,t,q,h);
+  two_sum(T,q,*e1,*e2);
+}
+
+inline void
+daxpy (float *x1, float *x2, float a, float b) {
+  scale_expansion(x1, x2, a);
+  grow_expansion(*x1, *x2, b);
 }
 
 // todo Add code for dot product, matvec, dgemm, rk4

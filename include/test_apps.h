@@ -70,7 +70,8 @@ void test_rk45_exp(unsigned int n, float *qres, float *qrhs, float *q) {
   float rk4a, rk4b;
   float dt = 0.01;
 
-  // @hari only qres in high precision ?
+  // @todo, move outside the function ...
+  float *qtmp = new float[n*r];
 
   for (int t = 0; t < 10000; ++t) {
 
@@ -84,13 +85,16 @@ void test_rk45_exp(unsigned int n, float *qres, float *qrhs, float *q) {
           // create extra temp storage of size n*r
 
           // following sum in exp mode
-          qres[i * r + j] = rk4a * qres[i * r + j] + dt * qrhs[i * r + j];
-          // this scaling ?
+          daxpy(qres + i*r + j, qtmp + i*r + j, rk4a, dt*qrhs[i*r+j]);
+
+          // use exp for this scaling ?
           q[j * n + i] += rk4b * qres[i * r + j];
         }
       }
     }
   }
+
+  delete [] qtmp;
 }
 
 #endif //EXPFLOAT_TEST_APPS_H
