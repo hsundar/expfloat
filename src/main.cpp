@@ -7,8 +7,9 @@
 #include <expansion_math.h>
 #include <test_apps.h>
 #include <iostream>
+#include <algorithm>
+#include <limits>
 
-#include <softfloat.h>
 #include <quadmath.h>
 #include <math.h>
 
@@ -29,6 +30,18 @@ typedef unsigned long uint64;
 #define STRINGIZER(x)   # x
 #define TO_STRING(x)    STRINGIZER(x)
 
+template<class T>
+typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
+    almost_equal(T x, T y, int ulp)
+{
+    // the machine epsilon has to be scaled to the magnitude of the values used
+    // and multiplied by the desired precision in ULPs (units in the last place)
+    return std::abs(x-y) < std::numeric_limits<T>::epsilon() * std::abs(x+y) * ulp
+    // unless the result is subnormal
+           || std::abs(x-y) < std::numeric_limits<T>::min();
+}
+
+
 static int print_u128_u(uint128_t u128)
 {
     int rc;
@@ -47,7 +60,7 @@ static int print_u128_u(uint128_t u128)
     return rc;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
   int i;
   float a, b, x, y;
   double da, db, dz;
@@ -202,13 +215,15 @@ int main() {
   //! @hari - 8 Oct 2016 - for Fall NSF Large 2016.
   printf("\n=========== H-float ============\n");
 
+/*
   float16_t    half_a;	// 16-bit half-precision binary format
   float32_t    sing_a;  // 32-bit single-precision binary format
   float64_t    doub_a;	// 64-bit double-precision binary format
   extFloat80_t extf_a;  // 80-bit double-extended-precision binary format (old Intel or Motorola format)
   float128_t 	 quad_a;  // 128-bit quadruple-precision binary format
+*/
 
-  unsigned long n = 1000000;
+  unsigned long n = atol(argv[1]); //  1000000;
   __float128  *sin2pi_q = new __float128[n];
 
   char buf[128];
@@ -216,7 +231,7 @@ int main() {
 
   // sin2pi_q[0] = sinq(0.0q);
   for (int i=0; i<n; ++i) {
-    sin2pi_q[i] = sinq(M_PIq * 2 * i / n / 1000);
+    sin2pi_q[i] = sinq(M_PIq * 2 * i / n / atoi(argv[2]) );
     // quadmath_snprintf (buf, sizeof(buf), "%+-.80Qe", hello[i]);
     // printf("%s\n", buf);
   }
@@ -269,17 +284,84 @@ int main() {
   printf("sin(2 pi x) -- %s\n", buf);
   quadmath_snprintf (buf, sizeof(buf), "%+-.32Qe", sin2pi_q[5] - sin2pi_q[4]);
   printf("sin(2 pi x) -- %s\n", buf);
+ 
+  __float128 r1,r2,r3,r4;
+  double d, d_prev;
+  
+  unsigned long  d_cnt, f_cnt;
 
-  /* loop through
-     for (int i=1; i<n; ++i) {
-    cnts[0]++;
+
+  // approx by 2x double 
+  d = static_cast<double> ( sin2pi_q[0] );
+  r1 = d;
+  r2 = sin2pi_q[0] - r1;  
+  d_cnt = 2;
+  d_prev = d;
+  for (int i=1; i<n; ++i) {
+    d = static_cast<double> ( sin2pi_q[i] - sin2pi_q[i-1]);
+    double err = std::abs(d-d_prev);
+    if ( err < 1e-16 ) { // almost_equal(d, d_prev, 10) ) {
+      r2 = sin2pi_q[i]  - sin2pi_q[i-1] - r1;
+      d_cnt++;  
+    } else {
+      // double err = std::abs(d-d_prev);
+      // printf("error is %g\n", err);
+      r1 = d;
+      r2 = sin2pi_q[i]  - sin2pi_q[i-1] - r1;
+      d_prev = d;
+      d_cnt+=2;  
+    }	
   }
-  */
+
+  printf("Storage by doubles instead of quads.\n");
+  printf("quad storage:\t %ld bytes \n", n*16); 
+  printf("double storage:\t %ld bytes \n", d_cnt*8); 
+
+  // approx by 4x float
+  
 
   delete [] sin2pi_q;
 
   printf("\n============================\n");
 
+	
+  printf("\n========double by float=========\n");
+
+  double  *sin2pi = new double[n];
+
+  for (int i=0; i<n; ++i) {
+    sin2pi[i] = sin(M_PI * 2 * i / n  );
+  }
+  
+  double d1, d2;
+  float f,f_prev;
+  
+  f = static_cast<float> ( sin2pi[0] );
+  d1 = f;
+  d2 = sin2pi[0] - d1;  
+  f_cnt = 2;
+  f_prev = f;
+  for (int i=1; i<n; ++i) {
+    f = static_cast<float> ( sin2pi[i] - sin2pi[i-1]);
+    double err = std::abs(f-f_prev);
+    if ( err < 1e-8 ) { // almost_equal(d, d_prev, 10) ) {
+      d2 = sin2pi[i] - d1;
+      f_cnt++;  
+    } else {
+      // double err = std::abs(d-d_prev);
+      // printf("error is %g\n", err);
+      d1 = f;
+      d2 = sin2pi[i] - d1;
+      f_prev = f;
+      f_cnt+=2;  
+    }	
+  }
+  printf("Storage by floats instead of doubles.\n");
+  printf("double storage:\t %ld bytes \n", n*8); 
+  printf("float storage:\t %ld bytes \n", f_cnt*4); 
+
+  delete [] sin2pi;
+  printf("\n============================\n");
   return 0;
 }
 
